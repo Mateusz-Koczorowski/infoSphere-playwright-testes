@@ -86,6 +86,21 @@ jobs:
     - name: Debug Docker containers
       run: docker ps
 
+    - name: Check Laravel logs
+      run: docker logs laravel-app
+    
+    - name: Inspect Laravel app container
+      run: docker inspect laravel-app
+    
+    - name: Test connectivity from MySQL container
+      run: docker exec laravel-mysql curl http://laravel-app:8000
+    
+    - name: List running processes in Laravel app container
+      run: docker exec laravel-app ps aux
+    
+    - name: Debug Laravel .env
+      run: cat ./laravel-project-blog-news/.env
+
     - name: Wait for Laravel to start
       run: |
         ATTEMPTS=10
