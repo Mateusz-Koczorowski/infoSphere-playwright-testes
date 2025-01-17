@@ -88,7 +88,19 @@ jobs:
 
     - name: Wait for Laravel to start
       run: |
-        curl --retry 10 --retry-delay 10 --fail http://localhost:8000
+        ATTEMPTS=10
+        INTERVAL=10
+        for ((i=1;i<=ATTEMPTS;i++)); do
+          echo "Waiting for Laravel app to start... attempt $i"
+          if curl --fail http://localhost:8000; then
+            echo "Laravel app is ready!"
+            exit 0
+          fi
+          sleep $INTERVAL
+        done
+        echo "Laravel app failed to start within the expected time." >&2
+        exit 1
+    
 
     - name: Install dependencies
       run: npm install -g yarn && yarn
