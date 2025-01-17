@@ -10,6 +10,7 @@ jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+
     steps:
     - uses: actions/checkout@v4
 
@@ -20,10 +21,85 @@ jobs:
     - name: Clone Laravel repository
       run: git clone https://github.com/Mateusz-Koczorowski/laravel-project-blog-news laravel
 
+    - name: Create Laravel .env file
+      working-directory: ./laravel
+      env:
+        APP_DEBUG: ${{ vars.APP_DEBUG }}
+        APP_ENV: ${{ vars.APP_ENV }}
+        APP_NAME: ${{ vars.APP_NAME }}
+        APP_URL: ${{ vars.APP_URL }}
+        DB_CONNECTION: ${{ vars.DB_CONNECTION }}
+        DB_HOST: ${{ vars.DB_HOST }}
+        DB_PORT: ${{ vars.DB_PORT }}
+        DB_DATABASE: ${{ secrets.DB_DATABASE }}
+        DB_USERNAME: ${{ secrets.DB_USERNAME }}
+        DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        ADMIN_NAME: ${{ secrets.ADMIN_NAME }}
+        ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+        ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+        AUTHOR_NAME: ${{ secrets.AUTHOR_NAME }}
+        AUTHOR_EMAIL: ${{ secrets.AUTHOR_EMAIL }}
+        AUTHOR_PASSWORD: ${{ secrets.AUTHOR_PASSWORD }}
+        READER_NAME: ${{ secrets.READER_NAME }}
+        READER_EMAIL: ${{ secrets.READER_EMAIL }}
+        READER_PASSWORD: ${{ secrets.READER_PASSWORD }}
+      run: |
+        echo "APP_NAME=${APP_NAME}
+        APP_ENV=${APP_ENV}
+        APP_KEY=
+        APP_DEBUG=${APP_DEBUG}
+        APP_URL=${APP_URL}
+
+        DB_CONNECTION=${DB_CONNECTION}
+        DB_HOST=${DB_HOST}
+        DB_PORT=${DB_PORT}
+        DB_DATABASE=${DB_DATABASE}
+        DB_USERNAME=${DB_USERNAME}
+        DB_PASSWORD=${DB_PASSWORD}
+
+        ADMIN_NAME=${ADMIN_NAME}
+        ADMIN_EMAIL=${ADMIN_EMAIL}
+        ADMIN_PASSWORD=${ADMIN_PASSWORD}
+
+        AUTHOR_NAME=${AUTHOR_NAME}
+        AUTHOR_EMAIL=${AUTHOR_EMAIL}
+        AUTHOR_PASSWORD=${AUTHOR_PASSWORD}
+
+        READER_NAME=${READER_NAME}
+        READER_EMAIL=${READER_EMAIL}
+        READER_PASSWORD=${READER_PASSWORD}" > .env
+
+    - name: Create Docker Compose file
+      working-directory: ./laravel
+      run: |
+        echo "version: '3.8'
+        services:
+          app:
+            image: php:8.2-apache
+            container_name: laravel-app
+            ports:
+              - 8000:80
+            volumes:
+              - .:/var/www/html
+            working_dir: /var/www/html
+            command: sh -c 'composer install && php artisan migrate --seed && apache2-foreground'
+
+          db:
+            image: mysql:8.0
+            container_name: laravel-db
+            environment:
+              MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+              MYSQL_DATABASE: ${DB_DATABASE}
+              MYSQL_USER: ${DB_USERNAME}
+              MYSQL_PASSWORD: ${DB_PASSWORD}
+            ports:
+              - 3306:3306
+        " > docker-compose.yml
+
     - name: Start Laravel application in Docker
       working-directory: ./laravel
       run: |
-        docker-compose down -v
+        docker-compose down -v || true
         docker-compose up -d
 
     - name: Wait for Laravel to start
