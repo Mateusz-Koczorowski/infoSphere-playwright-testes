@@ -82,8 +82,8 @@ jobs:
 
     - name: Wait for Laravel to start
       run: |
-        sleep 30
-        curl --retry 5 --retry-delay 10 --fail http://localhost:8000
+        sleep 60
+        curl --retry 5 --retry-delay 30 --fail http://localhost:8000
 
     - name: Install dependencies
       run: npm install -g yarn && yarn
