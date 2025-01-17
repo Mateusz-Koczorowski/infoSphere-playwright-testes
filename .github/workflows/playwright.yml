@@ -18,11 +18,13 @@ jobs:
       with:
         node-version: lts/*
 
-    - name: Clone Laravel repository
-      run: git clone https://github.com/Mateusz-Koczorowski/laravel-project-blog-news laravel
+    - name: Install Docker Compose
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y docker-compose
 
     - name: Create Laravel .env file
-      working-directory: ./laravel
+      working-directory: ./laravel-project-blog-news
       env:
         APP_DEBUG: ${{ vars.APP_DEBUG }}
         APP_ENV: ${{ vars.APP_ENV }}
@@ -69,35 +71,8 @@ jobs:
         READER_EMAIL=${READER_EMAIL}
         READER_PASSWORD=${READER_PASSWORD}" > .env
 
-    - name: Create Docker Compose file
-      working-directory: ./laravel
-      run: |
-        echo "version: '3.8'
-        services:
-          app:
-            image: php:8.2-apache
-            container_name: laravel-app
-            ports:
-              - 8000:80
-            volumes:
-              - .:/var/www/html
-            working_dir: /var/www/html
-            command: sh -c 'composer install && php artisan migrate --seed && apache2-foreground'
-
-          db:
-            image: mysql:8.0
-            container_name: laravel-db
-            environment:
-              MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-              MYSQL_DATABASE: ${DB_DATABASE}
-              MYSQL_USER: ${DB_USERNAME}
-              MYSQL_PASSWORD: ${DB_PASSWORD}
-            ports:
-              - 3306:3306
-        " > docker-compose.yml
-
     - name: Start Laravel application in Docker
-      working-directory: ./laravel
+      working-directory: ./laravel-project-blog-news
       run: |
         docker-compose down -v || true
         docker-compose up -d
