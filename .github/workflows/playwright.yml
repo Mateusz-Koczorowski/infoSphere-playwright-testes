@@ -23,6 +23,9 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y docker-compose
 
+    - name: Clone Laravel repository
+      run: git clone https://github.com/Mateusz-Koczorowski/laravel-project-blog-news laravel-project-blog-news
+
     - name: Create Laravel .env file
       working-directory: ./laravel-project-blog-news
       env:
