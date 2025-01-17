@@ -80,16 +80,15 @@ jobs:
         docker-compose down -v || true
         docker-compose up --build -d
 
-    - name: Wait for Laravel to start
-      run: |
-        sleep 60
-        curl --retry 5 --retry-delay 10 --fail http://laravel-app:8000
-
     - name: Debug Laravel logs
       run: docker logs laravel-app
 
     - name: Debug Docker containers
       run: docker ps
+
+    - name: Wait for Laravel to start
+      run: |
+        curl --retry 6 --retry-delay 10 --fail http://laravel-app:8000
 
     - name: Install dependencies
       run: npm install -g yarn && yarn
