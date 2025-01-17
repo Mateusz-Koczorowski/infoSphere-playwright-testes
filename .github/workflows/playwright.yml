@@ -1,0 +1,136 @@
+name: Playwright Tests
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-node@v4
+      with:
+        node-version: lts/*
+
+    - name: Install Docker Compose
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y docker-compose
+
+    - name: Clone Laravel repository
+      run: git clone https://github.com/Mateusz-Koczorowski/laravel-project-blog-news laravel-project-blog-news
+
+    - name: Create Laravel .env file
+      working-directory: ./laravel-project-blog-news
+      env:
+        APP_DEBUG: ${{ vars.APP_DEBUG }}
+        APP_ENV: ${{ vars.APP_ENV }}
+        APP_NAME: ${{ vars.APP_NAME }}
+        APP_URL: ${{ vars.APP_URL }}
+        DB_CONNECTION: ${{ vars.DB_CONNECTION }}
+        DB_HOST: mysql
+        DB_PORT: ${{ vars.DB_PORT }}
+        DB_DATABASE: ${{ secrets.DB_DATABASE }}
+        DB_USERNAME: ${{ secrets.DB_USERNAME }}
+        DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        ADMIN_NAME: ${{ secrets.ADMIN_NAME }}
+        ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+        ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+        AUTHOR_NAME: ${{ secrets.AUTHOR_NAME }}
+        AUTHOR_EMAIL: ${{ secrets.AUTHOR_EMAIL }}
+        AUTHOR_PASSWORD: ${{ secrets.AUTHOR_PASSWORD }}
+        READER_NAME: ${{ secrets.READER_NAME }}
+        READER_EMAIL: ${{ secrets.READER_EMAIL }}
+        READER_PASSWORD: ${{ secrets.READER_PASSWORD }}
+      run: |
+        echo "APP_NAME=${APP_NAME}
+        APP_ENV=${APP_ENV}
+        APP_KEY=
+        APP_DEBUG=${APP_DEBUG}
+        APP_URL=${APP_URL}
+
+        DB_CONNECTION=${DB_CONNECTION}
+        DB_HOST=${DB_HOST}
+        DB_PORT=${DB_PORT}
+        DB_DATABASE=${DB_DATABASE}
+        DB_USERNAME=${DB_USERNAME}
+        DB_PASSWORD=${DB_PASSWORD}
+
+        ADMIN_NAME=${ADMIN_NAME}
+        ADMIN_EMAIL=${ADMIN_EMAIL}
+        ADMIN_PASSWORD=${ADMIN_PASSWORD}
+
+        AUTHOR_NAME=${AUTHOR_NAME}
+        AUTHOR_EMAIL=${AUTHOR_EMAIL}
+        AUTHOR_PASSWORD=${AUTHOR_PASSWORD}
+
+        READER_NAME=${READER_NAME}
+        READER_EMAIL=${READER_EMAIL}
+        READER_PASSWORD=${READER_PASSWORD}" > .env
+
+    - name: Start Laravel application in Docker
+      working-directory: ./laravel-project-blog-news
+      run: |
+        docker-compose down -v || true
+        docker-compose up --build -d
+
+    - name: Debug Laravel logs
+      run: docker logs laravel-app
+
+    - name: Debug Docker containers
+      run: docker ps
+
+    - name: Check Laravel logs
+      run: docker logs laravel-app
+    
+    - name: Inspect Laravel app container
+      run: docker inspect laravel-app
+    
+    - name: Test connectivity from MySQL container
+      run: docker exec laravel-mysql curl http://laravel-app:8000
+    
+    - name: List running processes in Laravel app container
+      run: docker exec laravel-app ps aux
+    
+    - name: Debug Laravel .env
+      run: cat ./laravel-project-blog-news/.env
+
+    - name: Wait for Laravel to start
+      run: |
+        ATTEMPTS=10
+        INTERVAL=10
+        for ((i=1;i<=ATTEMPTS;i++)); do
+          echo "Waiting for Laravel app to start... attempt $i"
+          if curl --fail http://localhost:8000; then
+            echo "Laravel app is ready!"
+            exit 0
+          fi
+          sleep $INTERVAL
+        done
+        echo "Laravel app failed to start within the expected time." >&2
+        exit 1
+    
+
+    - name: Install dependencies
+      run: npm install -g yarn && yarn
+
+    - name: Install Playwright Browsers
+      run: yarn playwright install --with-deps
+
+    - name: Run Playwright tests
+      run: yarn playwright test
+      env:
+        BASE_URL: http://laravel-app:8000
+
+    - uses: actions/upload-artifact@v4
+      if: ${{ !cancelled() }}
+      with:
+        name: playwright-report
+        path: playwright-report/
+        retention-days: 30
